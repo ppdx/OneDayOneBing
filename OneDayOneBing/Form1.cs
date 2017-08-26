@@ -30,17 +30,10 @@ namespace OneDayOneBing
             try
             {
 #if !DEBUG
-                this.Hide();
+                Hide();
 #endif
 
-                string api = "http://www.bing.com/HPImageArchive.aspx?format=xml&idx=0&n=1&mkt=zh-CN";
-                string imageUrl = GetImageUrl(api);
-
-                string filename = DownloadImage(imageUrl);
-
-                pictureBox1.Image = new Bitmap(filename);
-
-                SetWallpaper(filename);
+                DoTask();
 
 #if !DEBUG
                 Close();
@@ -50,8 +43,20 @@ namespace OneDayOneBing
             {
                 Logging(ex.ToString());
                 Logging(ex.StackTrace);
-                this.Show();
+                Show();
             }
+        }
+
+        private void DoTask()
+        {
+            string api = "http://www.bing.com/HPImageArchive.aspx?format=xml&idx=0&n=1&mkt=zh-CN";
+            string imageUrl = GetImageUrl(api);
+
+            string filename = DownloadImage(imageUrl);
+
+            pictureBox1.Image = new Bitmap(filename);
+
+            SetWallpaper(filename);
         }
 
         private static string DownloadImage(string imageUrl)
@@ -173,6 +178,19 @@ namespace OneDayOneBing
             }
             SystemParametersInfo(SPI_SETDESKWALLPAPER, SPIF_UPDATEINIFILE, filename, 1);
 
+        }
+
+        private void 重试ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                DoTask();
+            }
+            catch (Exception ex)
+            {
+                Logging(ex.ToString());
+                Logging(ex.StackTrace);
+            }
         }
     }
 }
