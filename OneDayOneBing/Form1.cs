@@ -8,6 +8,7 @@ using System.Drawing.Imaging;
 using System.Net;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Xml;
 
 namespace OneDayOneBing
 {
@@ -28,33 +29,24 @@ namespace OneDayOneBing
         {
             try
             {
+#if !DEBUG
                 this.Hide();
-                Uri url = new Uri("http://cn.bing.com/");
-                var html = GetHtml(url.AbsoluteUri);
-                //Logging(html);
+#endif
 
-                var re = new Regex(@"g_img=\{url: \""(.+?)\""");
-                var image = re.Match(html).Groups[1].Value;
+                string api = "http://www.bing.com/HPImageArchive.aspx?format=xml&idx=0&n=1&mkt=zh-CN";
+                string imageUrl = GetImageUrl(api);
 
-                Uri imageUrl = new Uri(url, image);
-                Logging("image url:" + imageUrl);
-
-                string savePath = Path.Combine(Application.StartupPath, "images");
-                if (!Directory.Exists(savePath)) Directory.CreateDirectory(savePath);
-                string filename = Path.Combine(savePath, Path.GetFileName(image));
-                DownloadRemoteImageFile(imageUrl.AbsoluteUri, filename);
+                string filename = DownloadImage(imageUrl);
 
                 pictureBox1.Image = new Bitmap(filename);
 
                 SetWallpaper(filename);
-                //Logging("Happy for use.");
-                //Logging("Closing in 5s...");
-                //CloseTimer.Interval = 5000;
-                //CloseTimer.Start();
-                //CloseTimer.Tick += CloseTimer_Tick;
+
+#if !DEBUG
                 Close();
+#endif
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logging(ex.ToString());
                 Logging(ex.StackTrace);
@@ -62,9 +54,25 @@ namespace OneDayOneBing
             }
         }
 
-        private void CloseTimer_Tick(object sender, EventArgs e)
+        private static string DownloadImage(string imageUrl)
         {
-            Close();
+            string savePath = Path.Combine(Application.StartupPath, "images");
+            if (!Directory.Exists(savePath))
+                Directory.CreateDirectory(savePath);
+            string filename = Path.Combine(savePath, Path.GetFileName(imageUrl));
+            DownloadRemoteImageFile(imageUrl, filename);
+            return filename;
+        }
+
+        private string GetImageUrl(string api)
+        {
+            var doc = new XmlDocument();
+            doc.Load(api);
+
+            var imageUrl = new Uri(new Uri(api), doc.SelectSingleNode("//image/url").InnerText).AbsoluteUri;
+
+            Logging("image url: " + imageUrl);
+            return imageUrl;
         }
 
         private static void DownloadRemoteImageFile(string uri, string fileName)
@@ -98,7 +106,7 @@ namespace OneDayOneBing
             }
         }
 
-        private string GetHtml(string url)
+        private string GetPage(string url)
         {
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
             request.AutomaticDecompression = DecompressionMethods.GZip;
